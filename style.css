@@ -1,38 +1,8 @@
 html, body {
     margin: 0;
-    padding: 0;
-    width: 100%;
     height: 100%;
-    overflow: hidden;
 }
 
 #calculator {
-    width: 100%;
     height: 100%;
-}
-
-.dcg-container {
-    background-color: transparent !important;
-}
-
-.dcg-expressionlist {
-    background-color: var(--dcg-item-background-color, #fff);
-}
-
-.dcg-exppanel {
-    border-right: 1px solid rgb(204, 204, 204) !important;
-}
-
-.dcg-graph-outer {
-    background: transparent !important;
-}
-
-canvas.shader {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    pointer-events: none;
 }

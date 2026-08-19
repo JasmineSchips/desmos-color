@@ -37,29 +37,49 @@ function simplify(change) {
 	};
 }
 
+function containsZ(change) {
+	return change.variables.includes('z')
+		|| change.table_info?.independent_variable.includes('z')
+}
+
 function toggleZExpr(id, latex) {
-	const line = document.querySelector(`[expr-id="${id}"]`);
-	if (line) {
+	const lines = document.querySelectorAll(`[expr-id="${id}"]`);
+	if (!lines[0]) return
+	for (const line of lines) {
 		if (latex.includes('z')) line.setAttribute('z-expr', true);
 		else if (line.getAttribute('z-expr'))
 			line.setAttribute('z-expr', false);
 	}
 }
-function top() {
-	return Calc.getExpressions().find(expr => expr.id !== 'z');
+
+function removeMisunderstandings(change, id) {
+	if (change.error?.key === 'shared-calculator-error-equation-required-symbol') change.error = undefined
+	if (change.variables) change.variables = change.variables.filter(v => v !== 'z');
+	if (change.error?.vars?.variables) {
+		let variables = change.error.vars.variables.split("', '")
+		variables = variables.filter(v => v !== "z")
+		change.error.vars.variables = variables.join("', '")
+	} 
+	const model = Calc.controller.getItemModel(id);
+	if (model) model.error = undefined;
 }
-function eventHandler(evt) {
+
+function top() {
+	return Calc.getExpressions().find(expr => expr.latex.includes('z'));
+}
+export function eventHandler(evt) {
     const { functions, uniforms } = state
+	let shouldUpdate = false
     switch (evt.type) {
 		case 'set-item-latex':
-			if (evt.id === top().id) updatePrimary();
+			if (evt.id === top().id) shouldUpdate = true
 			break;
 
-		case 'on-evaluator-changes':
-			let shouldUpdate = false;
+		case 'on-evaluator-changes': // called for pretty much any change, including writing
 			let changes = {};
 			for (const [id, change] of Object.entries(evt.changes)) {
-				if (change.evaluated_latex === undefined) continue;
+				if (change.evaluated_latex === undefined) continue;		
+				if (containsZ(change)) removeMisunderstandings(change, id)
 				changes[id] = simplify(change);
 				changes[id].id = id;
 			}
@@ -68,19 +88,23 @@ function eventHandler(evt) {
 				toggleZExpr(change.id, change.latex);
 				shouldUpdate = changeHandler(change) || shouldUpdate;
 			}
-			if (shouldUpdate) updatePrimary();
+			
 			break;
 
 		case 'delete-item-and-animate-out':
 			if (uniforms[evt.id]) {
 				delete uniforms[evt.id];
-				updateProgram();
+				shouldUpdate = true
 			}
 			if (functions[evt.id]) {
 				delete functions[evt.id];
-				updateProgram();
+				shouldUpdate = true
 			}
 	}
+	if (shouldUpdate) updatePrimary();
+	return evt
 };
 
-Calc.controller.dispatcher.register(eventHandler);
+const dispatcher = Calc.controller.dispatcher
+const origDispatcher = dispatcher.dispatch.bind(dispatcher)
+dispatcher.dispatch = evt => origDispatcher(eventHandler(evt));
