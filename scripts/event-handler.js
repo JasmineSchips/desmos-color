@@ -37,9 +37,9 @@ function simplify(change) {
 	};
 }
 
-function containsZ(change) {
-	return change.variables.includes('z')
-		|| change.table_info?.independent_variable.includes('z')
+function containsZ(expr) {
+	return expr.variables.includes('z')
+		|| expr.table_info?.independent_variable.includes('z')
 }
 
 function toggleZExpr(id, latex) {
@@ -54,7 +54,10 @@ function toggleZExpr(id, latex) {
 
 function removeMisunderstandings(change, id) {
 	if (change.error?.key === 'shared-calculator-error-equation-required-symbol') change.error = undefined
-	if (change.variables) change.variables = change.variables.filter(v => v !== 'z');
+	if (change.variables) {
+		change.variables = change.variables.filter(v => v !== 'z');
+		change.table_info = {independent_variable: "z"}
+	}
 	if (change.error?.vars?.variables) {
 		let variables = change.error.vars.variables.split("', '")
 		variables = variables.filter(v => v !== "z")
@@ -64,22 +67,15 @@ function removeMisunderstandings(change, id) {
 	if (model) model.error = undefined;
 }
 
-function top() {
-	return Calc.getExpressions().find(expr => expr.latex.includes('z'));
-}
 export function eventHandler(evt) {
     const { functions, uniforms } = state
 	let shouldUpdate = false
     switch (evt.type) {
-		case 'set-item-latex':
-			if (evt.id === top().id) shouldUpdate = true
-			break;
-
 		case 'on-evaluator-changes': // called for pretty much any change, including writing
+			// console.log(evt)
 			let changes = {};
 			for (const [id, change] of Object.entries(evt.changes)) {
-				if (change.evaluated_latex === undefined) continue;		
-				if (containsZ(change)) removeMisunderstandings(change, id)
+				if (change.evaluated_latex === undefined) continue;
 				changes[id] = simplify(change);
 				changes[id].id = id;
 			}
@@ -107,4 +103,17 @@ export function eventHandler(evt) {
 
 const dispatcher = Calc.controller.dispatcher
 const origDispatcher = dispatcher.dispatch.bind(dispatcher)
-dispatcher.dispatch = evt => origDispatcher(eventHandler(evt));
+function newDispatcher(evt) {
+	switch (evt.type) {
+	case 'on-evaluator-changes':
+		for (const [id, change] of Object.entries(evt.changes)) {
+			if (change.evaluated_latex === undefined) continue;		
+			if (containsZ(change)) removeMisunderstandings(change, id)
+		}
+	}
+	return origDispatcher(evt)
+}
+
+
+dispatcher.dispatch = newDispatcher;
+Calc.controller.dispatcher.register(eventHandler);

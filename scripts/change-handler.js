@@ -1,15 +1,13 @@
 import { Calc, state, gl } from "./setup.js";
 import { updatePrimary } from "./update-primary.js";
 import { complexParser } from "./complex-parser.js";
-
-function top() {
-	return Calc.getExpressions().find(expr => expr.id !== 'z');
-}
+import { top } from "./utils.js";
+import { types } from "./types.js";
 
 export function changeHandler(change) {
     const { functions, uniforms } = state
 	const id = change.id;
-	if (id === top().id) updatePrimary();
+	updatePrimary();
 	let shouldUpdate = true;
 	const inUniforms = !!uniforms[id];
 	const isVar = change.isVariable;

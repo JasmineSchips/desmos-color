@@ -4,9 +4,18 @@ const Calc = Desmos.GraphingCalculator(calcDiv, {
     showXAxis: false,
     showYAxis: false,
     border: false,
-    expressions: true
+    expressions: true,
+    allowComplex: true
 })
-Calc.setExpression({ id: '1', latex: '\\frac{\\ln\\left(6-z^{6}\\right)}{z}' });
+window.Calc = Calc
+Calc.updateSettings({ complex: true })
+Calc.setExpression({ id: '1', latex: '\\frac{\\ln\\left(6-z^{6}\\right)}{z}2^a' });
+Calc.setExpression({ id: '2', latex: 'a=0', sliderBounds: { min: 0, max: 1 }, playing: true })
+Calc.controller.dispatch({
+    type: 'set-slider-loopmode',
+    id: '2',
+    loopMode: 'LOOP_FORWARD'
+});
 
 const canvas = document.createElement('canvas');
 canvas.className = 'shader';
@@ -22,7 +31,6 @@ const state = {
     viewportLocation: undefined,
     uniforms: [],
     functions: [],
-    topId: '1',
     mode: 'c',
     vao: gl.createVertexArray()
 }
